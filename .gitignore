@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
+firebase-functions/node_modules/
 
 # Production and build outputs
 dist/
+firebase-functions/lib/
 coverage/
 
 # Environment files
@@ -10,6 +12,13 @@ coverage/
 .env.*
 !.env.example
 *.local
+
+# Firebase
+.firebase/
+*.log
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
 
 # Python virtual environments (if any)
 venv/

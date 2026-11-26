@@ -13,7 +13,19 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) {
+            if (/\/node_modules\/@firebase\/firestore\//.test(id) || /\/node_modules\/firebase\/firestore\//.test(id)) {
+              return "firebase-firestore";
+            }
+            if (/\/node_modules\/@firebase\/auth\//.test(id) || /\/node_modules\/firebase\/auth\//.test(id)) {
+              return "firebase-auth";
+            }
+            if (/\/node_modules\/@firebase\/storage\//.test(id) || /\/node_modules\/firebase\/storage\//.test(id)) {
+              return "firebase-storage";
+            }
+            if (/\/node_modules\/@firebase\//.test(id) || /\/node_modules\/firebase\//.test(id)) {
+              return "firebase-core";
+            }
+            if (/\/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) {
               return "react-vendor";
             }
           },

@@ -1,0 +1,80 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function ownsShop(shopId) {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid;
+    }
+
+    function hasOrder(shopId, orderId) {
+      let order = firestore.get(
+        /databases/(default)/documents/orders/$(orderId)
+      ).data;
+      return order.id == orderId && order.shopId == shopId;
+    }
+
+    function isPublishedShop(shopId) {
+      let shop = firestore.get(
+        /databases/(default)/documents/shops/$(shopId)
+      ).data;
+      let publicShop = firestore.get(
+        /databases/(default)/documents/publicShops/$(shop.slug)
+      ).data;
+      return shop.id == shopId && publicShop.id == shopId;
+    }
+
+    function fileIsLinked(shopId, orderId, storagePath) {
+      let order = firestore.get(
+        /databases/(default)/documents/orders/$(orderId)
+      ).data;
+      return order.shopId == shopId
+        && order.files.size() > 0
+        && (
+          (order.files.size() > 0 && order.files[0].storagePath == storagePath)
+          || (order.files.size() > 1 && order.files[1].storagePath == storagePath)
+          || (order.files.size() > 2 && order.files[2].storagePath == storagePath)
+          || (order.files.size() > 3 && order.files[3].storagePath == storagePath)
+          || (order.files.size() > 4 && order.files[4].storagePath == storagePath)
+          || (order.files.size() > 5 && order.files[5].storagePath == storagePath)
+          || (order.files.size() > 6 && order.files[6].storagePath == storagePath)
+          || (order.files.size() > 7 && order.files[7].storagePath == storagePath)
+          || (order.files.size() > 8 && order.files[8].storagePath == storagePath)
+          || (order.files.size() > 9 && order.files[9].storagePath == storagePath)
+          || (order.files.size() > 10 && order.files[10].storagePath == storagePath)
+          || (order.files.size() > 11 && order.files[11].storagePath == storagePath)
+          || (order.files.size() > 12 && order.files[12].storagePath == storagePath)
+          || (order.files.size() > 13 && order.files[13].storagePath == storagePath)
+          || (order.files.size() > 14 && order.files[14].storagePath == storagePath)
+          || (order.files.size() > 15 && order.files[15].storagePath == storagePath)
+          || (order.files.size() > 16 && order.files[16].storagePath == storagePath)
+          || (order.files.size() > 17 && order.files[17].storagePath == storagePath)
+          || (order.files.size() > 18 && order.files[18].storagePath == storagePath)
+          || (order.files.size() > 19 && order.files[19].storagePath == storagePath)
+        );
+    }
+
+    match /shops/{shopId}/orders/{orderId}/{fileName} {
+      allow get: if ownsShop(shopId) || hasOrder(shopId, orderId);
+      allow list: if ownsShop(shopId);
+      allow create: if isPublishedShop(shopId)
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType in [
+          'application/pdf',
+          'image/jpeg',
+          'image/png'
+        ];
+      allow update: if ownsShop(shopId)
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType in [
+          'application/pdf',
+          'image/jpeg',
+          'image/png'
+        ];
+      allow delete: if ownsShop(shopId)
+        || (
+          !firestore.exists(/databases/(default)/documents/orders/$(orderId))
+          || !fileIsLinked(shopId, orderId, 'shops/' + shopId + '/orders/' + orderId + '/' + fileName)
+        );
+    }
+  }
+}

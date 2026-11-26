@@ -37,13 +37,20 @@ jobs:
 
       - name: Build EZQRPRINT
         env:
-          VITE_UPI_ID: ${{ secrets.VITE_UPI_ID }}
-          VITE_UPI_PAYEE_NAME: ${{ secrets.VITE_UPI_PAYEE_NAME }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_USE_EMULATORS: "false"
         run: |
-          if [[ -z "$VITE_UPI_ID" || -z "$VITE_UPI_PAYEE_NAME" ]]; then
-            echo "::error::Set VITE_UPI_ID and VITE_UPI_PAYEE_NAME repository secrets before deploying."
-            exit 1
-          fi
+          for name in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_STORAGE_BUCKET VITE_FIREBASE_MESSAGING_SENDER_ID VITE_FIREBASE_APP_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Set the $name repository secret before deploying."
+              exit 1
+            fi
+          done
           npm run build
 
       - name: Upload Pages artifact

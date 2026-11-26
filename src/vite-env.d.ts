@@ -1,10 +1,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_UPI_ID?: string;
-  readonly VITE_UPI_PAYEE_NAME?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+  readonly VITE_FIREBASE_USE_EMULATORS?: string;
+  readonly VITE_FIREBASE_EMULATOR_HOST?: string;
 }
