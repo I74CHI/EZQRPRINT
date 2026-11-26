@@ -39,11 +39,21 @@ describe("upload size limits", () => {
 });
 
 describe("print pricing", () => {
-  const rates = { bwPerPage: 2.5, colorPerPage: 10 };
+  const rates = {
+    bwPerPage: 2.5,
+    colorPerPage: 10,
+    bwDoubleSidedPerPage: 2,
+    colorDoubleSidedPerPage: 8,
+  };
 
   it("multiplies page count, copies, and the selected rate", () => {
     expect(calculatePrintCost(3, 2, "bw", rates)).toBe(15);
     expect(calculatePrintCost(2, 3, "color", rates)).toBe(60);
+  });
+
+  it("uses the separate B&W and Color rates for double-sided pages", () => {
+    expect(calculatePrintCost(3, 2, "bw", rates, "double")).toBe(12);
+    expect(calculatePrintCost(2, 3, "color", rates, "double")).toBe(48);
   });
 
   it("charges nothing while an encrypted PDF has no entered page count", () => {

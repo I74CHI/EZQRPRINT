@@ -5,7 +5,7 @@
 1. Open EZQRPRINT and choose **Shop Owner Login / Register**.
 2. Register with an email and password of at least 8 characters, then open **Shop settings**.
 3. Enter the public shop name and choose a short URL slug, such as `sharma-prints`.
-4. Set your B&W and Color rates in rupees per page.
+4. Set separate single-sided and double-sided per-page rates for B&W and Color.
 5. To offer a preset UPI payment button, enter both your merchant UPI ID and payee name. Leave both blank if customers should pay at the counter.
 6. Save the settings. Keep the slug stable: changing it changes the permanent QR URL, so previously printed standees must be replaced.
 
@@ -24,7 +24,7 @@ If you change the shop slug later, generate and print a new standee.
 - New orders appear in arrival order. Match every job using its large token (for example `#101`); customer names and phone numbers are not used.
 - **Unmute chime** enables a short browser-generated sound for new orders. Browsers require this explicit user action.
 - Open each file badge to check B&W/Color, ID Card Size, pages, copies, and item cost.
-- Customers can request single-sided or double-sided printing. Double-sided jobs use the same per-printed-page B&W/Color rate; enable duplex in the printer settings when printing.
+- Customers can request single-sided or double-sided printing. Each mode uses its matching B&W or Color per-page rate; enable duplex in the printer settings when printing.
 - **Mark Printing** updates the order status while you work.
 - Edit **Final amount** if you need an adjustment, then choose **Request Payment**. The customer sees the amount and, if configured, the UPI app button and matching QR.
 - Verify payment in your UPI app or at the counter. The customer's **I Have Paid** action is only a claim. Use **Confirm Paid & Complete** after you have verified payment.

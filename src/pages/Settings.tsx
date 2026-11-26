@@ -18,6 +18,8 @@ export default function Settings() {
   const [slug, setSlug] = useState("");
   const [bwRate, setBwRate] = useState("2");
   const [colorRate, setColorRate] = useState("10");
+  const [bwDoubleSidedRate, setBwDoubleSidedRate] = useState("2");
+  const [colorDoubleSidedRate, setColorDoubleSidedRate] = useState("10");
   const [upiId, setUpiId] = useState("");
   const [upiPayeeName, setUpiPayeeName] = useState("");
 
@@ -34,6 +36,8 @@ export default function Settings() {
           setSlug(currentShop.slug);
           setBwRate(String(currentShop.rates.bwPerPage));
           setColorRate(String(currentShop.rates.colorPerPage));
+          setBwDoubleSidedRate(String(currentShop.rates.bwDoubleSidedPerPage));
+          setColorDoubleSidedRate(String(currentShop.rates.colorDoubleSidedPerPage));
           setUpiId(currentShop.upiId ?? "");
           setUpiPayeeName(currentShop.upiPayeeName ?? "");
         } else {
@@ -75,6 +79,8 @@ export default function Settings() {
     const trimmedSlug = slug.trim();
     const numericBwRate = Number(bwRate);
     const numericColorRate = Number(colorRate);
+    const numericBwDoubleSidedRate = Number(bwDoubleSidedRate);
+    const numericColorDoubleSidedRate = Number(colorDoubleSidedRate);
     const trimmedUpiId = upiId.trim();
     const trimmedPayeeName = upiPayeeName.trim();
 
@@ -90,7 +96,11 @@ export default function Settings() {
       !Number.isFinite(numericBwRate) ||
       numericBwRate < 0 ||
       !Number.isFinite(numericColorRate) ||
-      numericColorRate < 0
+      numericColorRate < 0 ||
+      !Number.isFinite(numericBwDoubleSidedRate) ||
+      numericBwDoubleSidedRate < 0 ||
+      !Number.isFinite(numericColorDoubleSidedRate) ||
+      numericColorDoubleSidedRate < 0
     ) {
       setError("Enter valid non-negative per-page rates.");
       return;
@@ -110,6 +120,8 @@ export default function Settings() {
         rates: {
           bwPerPage: numericBwRate,
           colorPerPage: numericColorRate,
+          bwDoubleSidedPerPage: numericBwDoubleSidedRate,
+          colorDoubleSidedPerPage: numericColorDoubleSidedRate,
         },
       });
       setShop(savedShop);
@@ -234,7 +246,7 @@ export default function Settings() {
 
             <fieldset>
               <legend className="mb-3 text-sm font-bold text-[#171717]">
-                Per-page print rates <span className="text-[#e6322b]">(₹ INR)</span>
+                Single-sided print rates per page <span className="text-[#e6322b]">(₹ INR)</span>
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-[#383630]">
@@ -262,6 +274,47 @@ export default function Settings() {
                       step="0.01"
                       value={colorRate}
                       onChange={(event) => setColorRate(event.target.value)}
+                      required
+                      className="w-full bg-transparent px-3 py-3 text-[#171717] outline-none"
+                    />
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="mb-3 text-sm font-bold text-[#171717]">
+                Double-sided print rates per page (INR)
+              </legend>
+              <p className="mb-4 text-sm leading-6 text-[#55534d]">
+                These rates apply to each PDF page when the customer selects double-sided printing.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-[#383630]">
+                  Black &amp; White · double-sided per page
+                  <span className="mt-2 flex items-center border border-[#aaa79f] bg-white focus-within:border-[#e6322b]">
+                    <span className="pl-4 text-[#68665f]">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={bwDoubleSidedRate}
+                      onChange={(event) => setBwDoubleSidedRate(event.target.value)}
+                      required
+                      className="w-full bg-transparent px-3 py-3 text-[#171717] outline-none"
+                    />
+                  </span>
+                </label>
+                <label className="block text-sm font-medium text-[#383630]">
+                  Color · double-sided per page
+                  <span className="mt-2 flex items-center border border-[#aaa79f] bg-white focus-within:border-[#e6322b]">
+                    <span className="pl-4 text-[#68665f]">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={colorDoubleSidedRate}
+                      onChange={(event) => setColorDoubleSidedRate(event.target.value)}
                       required
                       className="w-full bg-transparent px-3 py-3 text-[#171717] outline-none"
                     />

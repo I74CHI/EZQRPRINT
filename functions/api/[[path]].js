@@ -89,7 +89,12 @@ function safeShop(row, includeOwner = false) {
     shopName: row.shop_name,
     slug: row.slug,
     ...(row.upi_id ? { upiId: row.upi_id, upiPayeeName: row.upi_payee_name } : {}),
-    rates: { bwPerPage: row.bw_per_page, colorPerPage: row.color_per_page },
+    rates: {
+      bwPerPage: row.bw_per_page,
+      colorPerPage: row.color_per_page,
+      bwDoubleSidedPerPage: row.bw_double_sided_per_page,
+      colorDoubleSidedPerPage: row.color_double_sided_per_page,
+    },
     ...(includeOwner ? { dailyCounter: row.daily_counter, lastOrderDate: row.last_order_date, createdAt: row.created_at } : {}),
   };
 }
@@ -124,7 +129,10 @@ async function validateFiles(value, shopId, orderId, rates, env) {
     const { fileName, storagePath, mimeType, pageCount, copies, colorMode, printSides, printNote } = file;
     if (typeof fileName !== "string" || !fileName.trim() || fileName.length > 255 || !expectedStoragePath(shopId, orderId, storagePath) || !MIME_TYPES.has(mimeType) || !Number.isSafeInteger(pageCount) || pageCount < 1 || pageCount > 10000 || !Number.isSafeInteger(copies) || copies < 1 || copies > 100 || !["bw", "color"].includes(colorMode) || !["single", "double"].includes(printSides) || !["standard", "id-card"].includes(printNote) || (mimeType === "application/pdf" && printNote !== "standard") || (mimeType !== "application/pdf" && pageCount !== 1)) throw new Error(`Invalid file: ${fileName || "unknown"}.`);
     if (!await env.FILES.get(storagePath, "stream")) throw new Error(`The upload for ${fileName} expired or could not be found. Please upload it again.`);
-    const itemCost = pageCount * copies * (colorMode === "bw" ? rates.bwPerPage : rates.colorPerPage);
+    const rate = colorMode === "bw"
+      ? printSides === "double" ? rates.bwDoubleSidedPerPage : rates.bwPerPage
+      : printSides === "double" ? rates.colorDoubleSidedPerPage : rates.colorPerPage;
+    const itemCost = pageCount * copies * rate;
     if (!Number.isFinite(itemCost)) throw new Error("The order total is invalid.");
     files.push({ fileName, storagePath, downloadUrl: "", mimeType, pageCount, copies, colorMode, printSides, printNote, itemCost });
   }
@@ -239,21 +247,23 @@ async function handleApi(request, env) {
     const slug = typeof body?.slug === "string" ? body.slug.trim() : "";
     const bw = body?.rates?.bwPerPage;
     const color = body?.rates?.colorPerPage;
+    const existing = await env.DB.prepare("SELECT * FROM shops WHERE owner_id = ?").bind(auth.owner.id).first();
+    const bwDoubleSided = body?.rates?.bwDoubleSidedPerPage ?? existing?.bw_double_sided_per_page ?? bw;
+    const colorDoubleSided = body?.rates?.colorDoubleSidedPerPage ?? existing?.color_double_sided_per_page ?? color;
     const upiId = typeof body?.upiId === "string" ? body.upiId.trim() : "";
     const payee = typeof body?.upiPayeeName === "string" ? body.upiPayeeName.trim() : "";
     if (!shopName || shopName.length > 80) return fail("Enter a shop name up to 80 characters.");
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 50) return fail("Use lowercase letters, numbers, and single hyphens for the shop URL.");
-    if (typeof bw !== "number" || !Number.isFinite(bw) || bw < 0 || bw > 100000 || typeof color !== "number" || !Number.isFinite(color) || color < 0 || color > 100000) return fail("Enter valid non-negative per-page rates.");
+    if (typeof bw !== "number" || !Number.isFinite(bw) || bw < 0 || bw > 100000 || typeof color !== "number" || !Number.isFinite(color) || color < 0 || color > 100000 || typeof bwDoubleSided !== "number" || !Number.isFinite(bwDoubleSided) || bwDoubleSided < 0 || bwDoubleSided > 100000 || typeof colorDoubleSided !== "number" || !Number.isFinite(colorDoubleSided) || colorDoubleSided < 0 || colorDoubleSided > 100000) return fail("Enter valid non-negative per-page rates.");
     if (Boolean(upiId) !== Boolean(payee) || upiId.length > 100 || payee.length > 100) return fail("Enter both UPI ID and payee name, or leave both blank.");
-    const existing = await env.DB.prepare("SELECT * FROM shops WHERE owner_id = ?").bind(auth.owner.id).first();
     const collision = await env.DB.prepare("SELECT owner_id FROM shops WHERE slug = ? AND owner_id <> ?").bind(slug, auth.owner.id).first();
     if (collision) return fail("That shop URL is already in use. Choose another.", 409);
     const now = Date.now();
     const day = istDateKey(now);
-    await env.DB.prepare(`INSERT INTO shops (id, owner_id, shop_name, slug, upi_id, upi_payee_name, bw_per_page, color_per_page, daily_counter, last_order_date, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 100, ?, ?)
-      ON CONFLICT(owner_id) DO UPDATE SET shop_name=excluded.shop_name, slug=excluded.slug, upi_id=excluded.upi_id, upi_payee_name=excluded.upi_payee_name, bw_per_page=excluded.bw_per_page, color_per_page=excluded.color_per_page`).bind(
-      existing?.id ?? auth.owner.id, auth.owner.id, shopName, slug, upiId || null, payee || null, bw, color, existing?.last_order_date ?? day, existing?.created_at ?? now,
+    await env.DB.prepare(`INSERT INTO shops (id, owner_id, shop_name, slug, upi_id, upi_payee_name, bw_per_page, color_per_page, bw_double_sided_per_page, color_double_sided_per_page, daily_counter, last_order_date, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 100, ?, ?)
+      ON CONFLICT(owner_id) DO UPDATE SET shop_name=excluded.shop_name, slug=excluded.slug, upi_id=excluded.upi_id, upi_payee_name=excluded.upi_payee_name, bw_per_page=excluded.bw_per_page, color_per_page=excluded.color_per_page, bw_double_sided_per_page=excluded.bw_double_sided_per_page, color_double_sided_per_page=excluded.color_double_sided_per_page`).bind(
+      existing?.id ?? auth.owner.id, auth.owner.id, shopName, slug, upiId || null, payee || null, bw, color, bwDoubleSided, colorDoubleSided, existing?.last_order_date ?? day, existing?.created_at ?? now,
     ).run();
     const saved = await env.DB.prepare("SELECT * FROM shops WHERE owner_id = ?").bind(auth.owner.id).first();
     return json({ shop: safeShop(saved, true) });
@@ -282,7 +292,7 @@ async function handleApi(request, env) {
     const shop = await env.DB.prepare("SELECT * FROM shops WHERE id = ?").bind(shopId).first();
     if (!shop) return fail("This EZQRPRINT shop is not available.", 404);
     let files;
-    try { files = await validateFiles(rawFiles, shopId, id, { bwPerPage: shop.bw_per_page, colorPerPage: shop.color_per_page }, env); }
+    try { files = await validateFiles(rawFiles, shopId, id, { bwPerPage: shop.bw_per_page, colorPerPage: shop.color_per_page, bwDoubleSidedPerPage: shop.bw_double_sided_per_page, colorDoubleSidedPerPage: shop.color_double_sided_per_page }, env); }
     catch (error) { return fail(error instanceof Error ? error.message : "Invalid print file details."); }
     const totalAmount = files.reduce((total, file) => total + file.itemCost, 0);
     const now = Date.now();
@@ -322,7 +332,7 @@ async function handleApi(request, env) {
     const shop = await env.DB.prepare("SELECT * FROM shops WHERE id = ?").bind(order.shop_id).first();
     const body = await readJson(request);
     let newFiles;
-    try { newFiles = await validateFiles(body?.files, order.shop_id, order.id, { bwPerPage: shop.bw_per_page, colorPerPage: shop.color_per_page }, env); }
+    try { newFiles = await validateFiles(body?.files, order.shop_id, order.id, { bwPerPage: shop.bw_per_page, colorPerPage: shop.color_per_page, bwDoubleSidedPerPage: shop.bw_double_sided_per_page, colorDoubleSidedPerPage: shop.color_double_sided_per_page }, env); }
     catch (error) { return fail(error instanceof Error ? error.message : "Invalid print file details."); }
     const existingFiles = JSON.parse(order.files_json);
     if (existingFiles.length + newFiles.length > MAX_ORDER_FILES) return fail(`An order can contain up to ${MAX_ORDER_FILES} files.`);

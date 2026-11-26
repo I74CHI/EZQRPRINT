@@ -26,7 +26,11 @@ export function calculatePrintCost(
   copies: number,
   colorMode: "bw" | "color",
   rates: PublicShop["rates"],
+  printSides: "single" | "double" = "single",
 ) {
   if (pageCount === null) return 0;
-  return pageCount * copies * (colorMode === "bw" ? rates.bwPerPage : rates.colorPerPage);
+  const rate = colorMode === "bw"
+    ? printSides === "double" ? rates.bwDoubleSidedPerPage : rates.bwPerPage
+    : printSides === "double" ? rates.colorDoubleSidedPerPage : rates.colorPerPage;
+  return pageCount * copies * rate;
 }

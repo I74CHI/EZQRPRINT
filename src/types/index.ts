@@ -12,6 +12,8 @@ export interface Shop {
   rates: {
     bwPerPage: number;
     colorPerPage: number;
+    bwDoubleSidedPerPage: number;
+    colorDoubleSidedPerPage: number;
   };
   dailyCounter: number;
   lastOrderDate: string;
@@ -27,6 +29,8 @@ export interface PublicShop {
   rates: {
     bwPerPage: number;
     colorPerPage: number;
+    bwDoubleSidedPerPage: number;
+    colorDoubleSidedPerPage: number;
   };
 }
 

@@ -47,7 +47,7 @@ export function PrintFileUploader({
   const total = files.reduce(
     (amount, file) =>
       amount +
-      calculatePrintCost(file.pageCount, file.copies, file.colorMode, shop.rates),
+      calculatePrintCost(file.pageCount, file.copies, file.colorMode, shop.rates, file.printSides),
     0,
   );
   const hasInvalidPageCount = files.some(
@@ -163,6 +163,7 @@ export function PrintFileUploader({
         draft.copies,
         draft.colorMode,
         shop.rates,
+        draft.printSides,
       ),
     };
   }
@@ -363,7 +364,7 @@ export function PrintFileUploader({
               ))}
             </div>
             <p className="mt-2 text-xs text-[#68665f]">
-              Billed per printed page at the selected B&W or Color rate. Enable duplex in the printer settings.
+              Billed per page using the matching single-sided or double-sided B&amp;W or Color rate. Enable duplex in the printer settings.
             </p>
           </div>
 
@@ -440,6 +441,7 @@ export function PrintFileUploader({
               file.copies,
               file.colorMode,
               shop.rates,
+              file.printSides,
             ),
           )}
           </p>
