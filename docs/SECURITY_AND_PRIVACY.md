@@ -3,7 +3,7 @@
 ## Customer privacy
 
 - Customers do not make accounts or provide names, emails, or phone numbers.
-- The browser stores the random order ID and shop slug in local storage to restore an active order. Anyone who obtains the order ID may read that order's status and claim payment.
+- The browser stores the random order ID and shop slug in local storage to restore an active order. Anyone who obtains the order ID may read that order's status and append files while the order is pending or printing.
 - Uploaded filenames are retained in the order summary. A filename or file contents may contain customer-provided information.
 - File bytes expire in Workers KV after 24 hours; order summaries remain in D1 for the earnings log.
 - Merchant UPI details are public on the shop page so the payment app can be addressed correctly.
@@ -21,7 +21,7 @@
 - File paths include server-generated random UUIDs and are scoped by shop and order ID.
 - Owner download routes require a valid owner session and verify the order belongs to that owner's shop.
 - Customer order IDs are random bearer identifiers rather than sequential tokens; do not share them publicly.
-- UPI payment claims are customer-reported only. Owners must verify the payment in their UPI app.
+- Customers cannot mark payment as received. Owners must verify the payment in their UPI app or at the counter and confirm it before the receipt is shown.
 
 ## Cloudflare Free allowances
 

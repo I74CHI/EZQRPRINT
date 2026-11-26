@@ -25,7 +25,6 @@ export function CustomerOrderStatus({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingFiles, setAddingFiles] = useState(false);
-  const [claimingPayment, setClaimingPayment] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -58,22 +57,6 @@ export function CustomerOrderStatus({
     setAddingFiles(false);
   }
 
-  async function claimPayment() {
-    setClaimingPayment(true);
-    setError(null);
-    try {
-      await api.claimPayment(orderId);
-    } catch (paymentIssue) {
-      setError(
-        paymentIssue instanceof Error
-          ? paymentIssue.message
-          : "Unable to update the payment claim.",
-      );
-    } finally {
-      setClaimingPayment(false);
-    }
-  }
-
   if (loading) return <LoadingScreen />;
   if (!order) {
     return (
@@ -97,7 +80,7 @@ export function CustomerOrderStatus({
     );
   }
 
-  if (order.paymentClaimed || order.status === "completed") {
+  if (order.status === "completed") {
     return <OrderReceipt shop={shop} order={order} onStartNewOrder={onStartNewOrder} />;
   }
 
@@ -216,20 +199,15 @@ export function CustomerOrderStatus({
                 <p className="mt-3 text-sm text-[#68665f]">
                   Scan the QR code if the UPI app button is unavailable.
                 </p>
-                <button
-                  type="button"
-                  onClick={claimPayment}
-                  disabled={claimingPayment || order.paymentClaimed}
-                  className="mt-6 w-full border border-[#171717] px-5 py-3 font-bold transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
-                >
-                  {claimingPayment ? "Updating…" : "I Have Paid"}
-                </button>
               </>
             ) : (
               <p className="mt-4 text-sm leading-6 text-[#55534d]">
                 UPI payment is not configured for this shop. Please pay at the counter.
               </p>
             )}
+            <p className="mt-5 text-sm leading-6 text-[#55534d]">
+              After paying, show your token at the counter. Your receipt will appear here after the shop owner confirms payment.
+            </p>
           </section>
         )}
       </div>

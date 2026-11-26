@@ -106,12 +106,6 @@ export const api = {
       body: JSON.stringify({ action, ...(amount === undefined ? {} : { amount }) }),
     });
   },
-  async claimPayment(orderId: string) {
-    return request<{ ok: boolean }>(`orders/${encodeURIComponent(orderId)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ action: "claim-payment" }),
-    });
-  },
   async purgeFiles(orderId: string) {
     return request<{ ok: boolean }>(`orders/${encodeURIComponent(orderId)}/purge`, {
       method: "POST",

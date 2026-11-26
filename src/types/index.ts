@@ -52,7 +52,6 @@ export interface Order {
   shopId: string;
   tokenNumber: number;
   status: "pending" | "printing" | "awaiting_payment" | "completed";
-  paymentClaimed: boolean;
   filesPurged: boolean;
   totalAmount: number;
   finalAmount: number;

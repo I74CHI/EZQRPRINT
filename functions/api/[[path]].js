@@ -106,7 +106,6 @@ function ownerOrder(row) {
     shopId: row.shop_id,
     tokenNumber: row.token_number,
     status: row.status,
-    paymentClaimed: Boolean(row.payment_claimed),
     filesPurged: Boolean(row.files_purged) || expired,
     totalAmount: row.total_amount,
     finalAmount: row.final_amount,
@@ -355,10 +354,6 @@ async function handleApi(request, env) {
   if (orderPath && !orderPath[2] && request.method === "PATCH") {
     const body = await readJson(request);
     const action = body?.action;
-    if (action === "claim-payment") {
-      const result = await env.DB.prepare("UPDATE orders SET payment_claimed = 1 WHERE id = ? AND status = 'awaiting_payment' AND files_purged = 0").bind(orderPath[1]).run();
-      return result.meta.changes ? json({ ok: true }) : fail("This order is not waiting for payment.", 409);
-    }
     const auth = await requireOwner(request, env); if (auth.response) return auth.response;
     const order = await env.DB.prepare("SELECT orders.* FROM orders JOIN shops ON shops.id = orders.shop_id WHERE orders.id = ? AND shops.owner_id = ?").bind(orderPath[1], auth.owner.id).first();
     if (!order) return fail("This order is no longer available.", 404);
@@ -369,7 +364,7 @@ async function handleApi(request, env) {
       if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0 || amount > 10000000) return fail("Enter a valid non-negative final amount in ₹.");
       await env.DB.prepare("UPDATE orders SET status = 'awaiting_payment', final_amount = ? WHERE id = ? AND status <> 'completed'").bind(amount, order.id).run();
     } else if (action === "confirm-paid") {
-      await env.DB.prepare("UPDATE orders SET status = 'completed', payment_claimed = 1 WHERE id = ?").bind(order.id).run();
+      await env.DB.prepare("UPDATE orders SET status = 'completed' WHERE id = ?").bind(order.id).run();
     } else return fail("This order action is not available.", 409);
     return json({ ok: true });
   }

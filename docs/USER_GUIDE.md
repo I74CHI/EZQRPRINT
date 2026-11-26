@@ -27,7 +27,7 @@ If you change the shop slug later, generate and print a new standee.
 - Customers can request single-sided or double-sided printing. Each mode uses its matching B&W or Color per-page rate; enable duplex in the printer settings when printing.
 - **Mark Printing** updates the order status while you work.
 - Edit **Final amount** if you need an adjustment, then choose **Request Payment**. The customer sees the amount and, if configured, the UPI app button and matching QR.
-- Verify payment in your UPI app or at the counter. The customer's **I Have Paid** action is only a claim. Use **Confirm Paid & Complete** after you have verified payment.
+- Verify payment in your UPI app or at the counter, then choose **Confirm Paid & Complete**. The customer's receipt appears after you confirm payment.
 
 ## Download and print customer files
 
@@ -68,7 +68,7 @@ The history groups orders by their recorded order creation timestamp (`createdAt
 3. Choose copies and B&W or Color. For images, select Standard Print or ID Card Size. Review the live rupee total and upload progress.
 4. Keep the displayed token and show it at the counter. No customer account, name, email, or phone number is required.
 5. While the order is pending or printing, use **+ Add More Files to This Order** if needed.
-6. When the shop requests payment, tap **Pay via UPI App** or scan the payment QR. Complete the payment in the UPI app, return to EZQRPRINT, then tap **I Have Paid**. The receipt appears after you claim payment.
-7. Show the receipt/token to shop staff. Staff verify payment and mark the order complete. The receipt can be downloaded as a PNG.
+6. When the shop requests payment, tap **Pay via UPI App** or scan the payment QR. Complete payment and show your token at the counter. The receipt appears on this page after shop staff confirm payment.
+7. Download the receipt as a PNG if you need a copy. If the shop has not configured UPI, pay at the counter and wait for the owner to confirm payment.
 
 If the shop has not configured UPI, pay at the counter and follow the shop owner's instructions. Use **Skip / Start New Order** only after you no longer need the current order session.

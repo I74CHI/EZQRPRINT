@@ -388,19 +388,6 @@ export default function Dashboard() {
                             ? "Awaiting Payment"
                             : "Pending"}
                       </span>
-                      <span
-                        className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${
-                          order.paymentClaimed
-                            ? "bg-[#eaf2ed] text-[#24543b]"
-                            : "bg-[#f3f2ee] text-[#55534d]"
-                        }`}
-                      >
-                        {order.paymentClaimed
-                          ? "Payment Claimed"
-                          : order.status === "awaiting_payment"
-                            ? "Awaiting Payment"
-                            : "Payment Not Claimed"}
-                      </span>
                     </div>
                   </header>
 

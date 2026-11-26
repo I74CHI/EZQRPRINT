@@ -19,7 +19,7 @@ flowchart LR
   Customer -->|upi://pay intent| UPI
 ```
 
-The app is a same-origin Pages site and API. Customers have no account; the random order ID acts as a bearer identifier for status and payment-claim actions. Owners use email/password accounts and an HttpOnly, Secure, SameSite cookie. No Firebase project, R2 bucket, or payment processor is used.
+The app is a same-origin Pages site and API. Customers have no account; the random order ID acts as a bearer identifier for order status and adding files while an order is active. Owners use email/password accounts and an HttpOnly, Secure, SameSite cookie. Owners confirm received payment, which completes the order and makes the customer receipt available. No Firebase project, R2 bucket, or payment processor is used.
 
 ## Routes
 
