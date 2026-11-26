@@ -322,26 +322,27 @@ export default function Settings() {
                   </span>
                 </label>
               </div>
-              {upiDetailsChanged && (
-                <label className="mt-4 block text-sm font-medium text-[#383630]">
-                  Current password to confirm UPI change
-                  <input
-                    type="password"
-                    value={upiConfirmationPassword}
-                    onChange={(event) => setUpiConfirmationPassword(event.target.value)}
-                    autoComplete="current-password"
-                    required
-                    minLength={8}
-                    maxLength={128}
-                    className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none focus:border-[#e6322b]"
-                    placeholder="Enter your account password"
-                  />
-                  <span className="mt-2 block text-xs font-normal text-[#68665f]">
-                    Required when adding, changing, or removing your saved UPI payment details.
-                  </span>
-                </label>
-              )}
             </fieldset>
+
+            {upiDetailsChanged && (
+              <label className="block text-sm font-medium text-[#383630]">
+                Current password to confirm UPI change
+                <input
+                  type="password"
+                  value={upiConfirmationPassword}
+                  onChange={(event) => setUpiConfirmationPassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                  minLength={8}
+                  maxLength={128}
+                  className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none focus:border-[#e6322b]"
+                  placeholder="Enter your account password"
+                />
+                <span className="mt-2 block text-xs font-normal text-[#68665f]">
+                  Required when adding, changing, or removing your saved UPI payment details.
+                </span>
+              </label>
+            )}
 
             <fieldset>
               <legend className="mb-3 text-sm font-bold text-[#171717]">
