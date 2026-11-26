@@ -1,14 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
-  orderBy,
-  query,
-  Timestamp,
-  where,
-} from "firebase/firestore";
 import { ArrowLeft, CalendarDays, CircleDollarSign, FileCheck2, Files } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LoadingScreen } from "../components/StatusScreen";
@@ -22,7 +12,7 @@ import {
   shiftDateKey,
   summarizeEarnings,
 } from "../lib/earnings";
-import { db } from "../lib/firebase";
+import { api } from "../lib/api";
 import type { Order, Shop } from "../types";
 
 type DateSelection = "today" | "yesterday" | "custom";
@@ -73,14 +63,14 @@ export default function History() {
 
     setShopLoading(true);
     setShopError(null);
-    getDoc(doc(db, "shops", user.uid))
-      .then((snapshot) => {
+    api.getShop()
+      .then((currentShop) => {
         if (!active) return;
-        if (!snapshot.exists()) {
+        if (!currentShop) {
           setShop(null);
           setShopError("Set up your shop before viewing its earnings history.");
         } else {
-          setShop(snapshot.data() as Shop);
+          setShop(currentShop);
         }
         setShopLoading(false);
       })
@@ -123,31 +113,16 @@ export default function History() {
     setOrdersLoading(true);
     setQueryError(null);
     setOrders([]);
-    const completedOrdersQuery = query(
-      collection(db, "orders"),
-      where("shopId", "==", shop.id),
-      where("status", "==", "completed"),
-      where("createdAt", ">=", Timestamp.fromDate(range.start)),
-      where("createdAt", "<", Timestamp.fromDate(range.end)),
-      orderBy("createdAt", "asc"),
-    );
-
-    return onSnapshot(
-      completedOrdersQuery,
-      (snapshot) => {
-        setOrders(
-          snapshot.docs.map(
-            (orderSnapshot) =>
-              ({ ...orderSnapshot.data(), id: orderSnapshot.id }) as Order,
-          ),
-        );
-        setOrdersLoading(false);
-      },
-      (snapshotError) => {
-        setQueryError(snapshotError.message);
-        setOrdersLoading(false);
-      },
-    );
+    let active = true;
+    api.getOrders("completed", range)
+      .then((nextOrders) => {
+        if (active) setOrders(nextOrders);
+      })
+      .catch((snapshotError: unknown) => {
+        if (active) setQueryError(snapshotError instanceof Error ? snapshotError.message : "Unable to load completed orders.");
+      })
+      .finally(() => { if (active) setOrdersLoading(false); });
+    return () => { active = false; };
   }, [shop, selectedDateKey]);
 
   const summary = useMemo(() => summarizeEarnings(orders), [orders]);

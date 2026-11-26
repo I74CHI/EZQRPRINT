@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  doc,
-  getDoc,
-} from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
 import { Printer, Store } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CustomerOrderStatus } from "../components/CustomerOrderStatus";
 import { PrintFileUploader } from "../components/PrintFileUploader";
 import { LoadingScreen } from "../components/StatusScreen";
-import { db, functions } from "../lib/firebase";
+import { api } from "../lib/api";
 import type { OrderFile, PublicShop } from "../types";
 
 const ACTIVE_ORDER_KEY = "ezqrprint:active-order";
@@ -21,7 +15,7 @@ export default function CustomerPortal() {
   const navigate = useNavigate();
   const [shop, setShop] = useState<PublicShop | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState(() => doc(collection(db, "orders")).id);
+  const [orderId, setOrderId] = useState(() => crypto.randomUUID());
   const [sessionWarning, setSessionWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +27,7 @@ export default function CustomerPortal() {
     setSessionWarning(null);
     setShop(null);
     setActiveOrderId(null);
-    setOrderId(doc(collection(db, "orders")).id);
+    setOrderId(crypto.randomUUID());
 
     if (!slug) {
       setError("This EZQRPRINT shop URL is not valid.");
@@ -43,16 +37,9 @@ export default function CustomerPortal() {
       };
     }
 
-    getDoc(doc(db, "publicShops", slug))
-      .then((snapshot) => {
+    api.getPublicShop(slug)
+      .then((data) => {
         if (!active) return;
-        if (!snapshot.exists()) {
-          setError("This EZQRPRINT shop could not be found.");
-          setLoading(false);
-          return;
-        }
-
-        const data = snapshot.data() as PublicShop;
         if (
           data.slug !== slug ||
           typeof data.id !== "string" ||
@@ -112,9 +99,9 @@ export default function CustomerPortal() {
     setError(null);
     setSessionWarning(null);
 
-    await httpsCallable(functions, "createCustomerOrder")({
+    await api.createOrder({
+      id: orderId,
       shopId: shop.id,
-      orderId,
       files,
     });
 
@@ -146,7 +133,7 @@ export default function CustomerPortal() {
     }
 
     setActiveOrderId(null);
-    setOrderId(doc(collection(db, "orders")).id);
+    setOrderId(crypto.randomUUID());
     setError(null);
     navigate(`/s/${slug}`, { replace: true });
   }

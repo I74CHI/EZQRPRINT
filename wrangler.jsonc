@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ezqrprint",
+  "compatibility_date": "2026-11-26",
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ezqrprint_db",
+      "database_id": "6299d0d9-0e49-47d4-a99b-954a731e5581",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "FILES",
+      "id": "72a22c255efe467f92243c4931857920"
+    }
+  ]
+}

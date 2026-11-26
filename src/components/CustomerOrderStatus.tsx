@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import {
-  doc,
-  onSnapshot,
-  updateDoc,
-} from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
 import { CheckCircle2, Plus, Printer } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { db, functions } from "../lib/firebase";
+import { api } from "../lib/api";
 import { formatINR } from "../lib/currency";
 import type { Order, OrderFile, PublicShop } from "../types";
 import { OrderReceipt } from "./OrderReceipt";
@@ -34,31 +28,33 @@ export function CustomerOrderStatus({
   const [claimingPayment, setClaimingPayment] = useState(false);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError(null);
     setOrder(null);
-    return onSnapshot(
-      doc(db, "orders", orderId),
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setOrder(null);
-          setError("This order is no longer available.");
-          setLoading(false);
-          return;
-        }
-        setOrder(snapshot.data() as Order);
+    const refreshOrder = async () => {
+      try {
+        const nextOrder = await api.getOrder(orderId);
+        if (!active) return;
+        setOrder(nextOrder);
         setError(null);
-        setLoading(false);
-      },
-      (snapshotError) => {
-        setError(snapshotError.message);
-        setLoading(false);
-      },
-    );
+      } catch (snapshotError) {
+        if (!active) return;
+        setError(snapshotError instanceof Error ? snapshotError.message : "Unable to refresh this order.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void refreshOrder();
+    const timer = window.setInterval(() => void refreshOrder(), 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [orderId]);
 
   async function appendFiles(files: OrderFile[]) {
-    await httpsCallable(functions, "appendOrderFiles")({ orderId, files });
+    await api.appendFiles(orderId, files);
     setAddingFiles(false);
   }
 
@@ -66,7 +62,7 @@ export function CustomerOrderStatus({
     setClaimingPayment(true);
     setError(null);
     try {
-      await updateDoc(doc(db, "orders", orderId), { paymentClaimed: true });
+      await api.claimPayment(orderId);
     } catch (paymentIssue) {
       setError(
         paymentIssue instanceof Error

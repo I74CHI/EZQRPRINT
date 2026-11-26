@@ -1,4 +1,6 @@
-import type { Timestamp } from "firebase/firestore";
+export interface AppTimestamp {
+  toDate(): Date;
+}
 
 export interface Shop {
   id: string;
@@ -13,7 +15,7 @@ export interface Shop {
   };
   dailyCounter: number;
   lastOrderDate: string;
-  createdAt: Timestamp;
+  createdAt: AppTimestamp;
 }
 
 export interface PublicShop {
@@ -50,7 +52,7 @@ export interface Order {
   filesPurged: boolean;
   totalAmount: number;
   finalAmount: number;
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
+  createdAt: AppTimestamp;
+  expiresAt: AppTimestamp;
   files: OrderFile[];
 }

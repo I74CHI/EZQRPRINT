@@ -1,20 +1,14 @@
 import { useState, type FormEvent } from "react";
-import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-} from "firebase/auth";
 import { ArrowLeft, Printer } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LoadingScreen } from "../components/StatusScreen";
 import { useAuth } from "../lib/AuthContext";
-import { auth } from "../lib/firebase";
+import { api } from "../lib/api";
 
 export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, error: authError } = useAuth();
+  const { user, loading, error: authError, refresh } = useAuth();
   const isRegister = location.pathname === "/register";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,31 +24,17 @@ export default function Login() {
     setError(null);
     try {
       if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        await api.register(email.trim(), password);
       } else {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        await api.login(email.trim(), password);
       }
+      await refresh();
       navigate("/dashboard", { replace: true });
     } catch (authIssue) {
       setError(
         authIssue instanceof Error
           ? authIssue.message
           : "Email and password authentication failed.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleGoogleSignIn() {
-    setBusy(true);
-    setError(null);
-    try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      navigate("/dashboard", { replace: true });
-    } catch (authIssue) {
-      setError(
-        authIssue instanceof Error ? authIssue.message : "Google sign-in failed.",
       );
     } finally {
       setBusy(false);
@@ -115,12 +95,12 @@ export default function Login() {
               <input
                 type="password"
                 autoComplete={isRegister ? "new-password" : "current-password"}
-                minLength={6}
+                minLength={8}
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none transition placeholder:text-[#85827a] focus:border-[#e6322b]"
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
               />
             </label>
             <button
@@ -135,24 +115,6 @@ export default function Login() {
                   : "Sign in"}
             </button>
           </form>
-
-          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-[#77746d]">
-            <span className="h-px flex-1 bg-[#d5d2ca]" />
-            or
-            <span className="h-px flex-1 bg-[#d5d2ca]" />
-          </div>
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleGoogleSignIn}
-            className="flex w-full items-center justify-center gap-3 border border-[#171717] px-4 py-3 font-semibold text-[#171717] transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-60"
-          >
-            <span aria-hidden="true" className="text-lg font-black text-[#e6322b]">
-              G
-            </span>
-            Continue with Google
-          </button>
 
           <p className="mt-6 text-center text-sm text-[#55534d]">
             {isRegister ? "Already registered?" : "New to EZQRPRINT?"}{" "}

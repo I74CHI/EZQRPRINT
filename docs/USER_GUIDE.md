@@ -3,7 +3,7 @@
 ## Shop owner setup
 
 1. Open EZQRPRINT and choose **Shop Owner Login / Register**.
-2. Register with Email/Password or Google, then open **Shop settings**.
+2. Register with an email and password of at least 8 characters, then open **Shop settings**.
 3. Enter the public shop name and choose a short URL slug, such as `sharma-prints`.
 4. Set your B&W and Color rates in rupees per page.
 5. To offer a preset UPI payment button, enter both your merchant UPI ID and payee name. Leave both blank if customers should pay at the counter.
@@ -57,7 +57,7 @@ Auto-crop is a best-effort image tool. Check the preview and adjust the crop bef
 2. Choose **Today**, **Yesterday**, or **Custom date**. Dates and timestamps use India Standard Time.
 3. The summary cards show completed order count, printed pages (pages × copies), and total earnings from each order's final amount.
 4. The table shows token, order timestamp, total pages, B&W/Color page counts, earnings, and whether files are available or purged.
-5. Purged files do not remove the order summary from this log. The hourly cleanup normally runs after each order's 24-hour file expiry.
+5. Purged files do not remove the order summary from this log. Uploaded file bytes expire after 24 hours.
 
 The history groups orders by their recorded order creation timestamp (`createdAt`); the current order model does not store a separate completion timestamp.
 

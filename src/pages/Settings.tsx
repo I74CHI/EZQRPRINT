@@ -1,18 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  writeBatch,
-  type WithFieldValue,
-} from "firebase/firestore";
 import { ArrowLeft, LogOut, Save, Store } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
 import { LoadingScreen } from "../components/StatusScreen";
 import { useAuth } from "../lib/AuthContext";
-import { auth, db } from "../lib/firebase";
-import type { PublicShop, Shop } from "../types";
+import { api } from "../lib/api";
+import type { Shop } from "../types";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -33,11 +25,10 @@ export default function Settings() {
     let active = true;
     if (!user) return;
 
-    getDoc(doc(db, "shops", user.uid))
-      .then((snapshot) => {
+    api.getShop()
+      .then((currentShop) => {
         if (!active) return;
-        if (snapshot.exists()) {
-          const currentShop = snapshot.data() as Shop;
+        if (currentShop) {
           setShop(currentShop);
           setShopName(currentShop.shopName);
           setSlug(currentShop.slug);
@@ -47,7 +38,7 @@ export default function Settings() {
           setUpiPayeeName(currentShop.upiPayeeName ?? "");
         } else {
           setSlug(
-            (user.displayName ?? "")
+            (user.email.split("@")[0] ?? "")
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, "-")
               .replace(/^-|-$/g, ""),
@@ -111,44 +102,17 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      const shopData: WithFieldValue<Shop> = {
-        id: user.uid,
-        ownerUid: user.uid,
+      const savedShop = await api.saveShop({
         shopName: trimmedShopName,
         slug: trimmedSlug,
-        ...(trimmedUpiId ? { upiId: trimmedUpiId } : {}),
-        ...(trimmedPayeeName ? { upiPayeeName: trimmedPayeeName } : {}),
+        upiId: trimmedUpiId,
+        upiPayeeName: trimmedPayeeName,
         rates: {
           bwPerPage: numericBwRate,
           colorPerPage: numericColorRate,
         },
-        dailyCounter: shop?.dailyCounter ?? 100,
-        lastOrderDate: shop?.lastOrderDate ?? new Date().toISOString().slice(0, 10),
-        createdAt: shop?.createdAt ?? serverTimestamp(),
-      };
-      const publicShopData: WithFieldValue<PublicShop> = {
-        id: user.uid,
-        shopName: trimmedShopName,
-        slug: trimmedSlug,
-        ...(trimmedUpiId ? { upiId: trimmedUpiId } : {}),
-        ...(trimmedPayeeName ? { upiPayeeName: trimmedPayeeName } : {}),
-        rates: {
-          bwPerPage: numericBwRate,
-          colorPerPage: numericColorRate,
-        },
-      };
-      const batch = writeBatch(db);
-      batch.set(doc(db, "shops", user.uid), shopData);
-      batch.set(doc(db, "publicShops", trimmedSlug), publicShopData);
-      if (shop && shop.slug !== trimmedSlug) {
-        batch.delete(doc(db, "publicShops", shop.slug));
-      }
-      await batch.commit();
-      const savedSnapshot = await getDoc(doc(db, "shops", user.uid));
-      if (!savedSnapshot.exists()) {
-        throw new Error("Shop settings were not found after saving.");
-      }
-      setShop(savedSnapshot.data() as Shop);
+      });
+      setShop(savedShop);
       setNotice("Shop settings saved.");
     } catch (saveIssue) {
       setError(
@@ -161,7 +125,7 @@ export default function Settings() {
 
   async function handleSignOut() {
     try {
-      await signOut(auth);
+      await api.logout();
       navigate("/", { replace: true });
     } catch (signOutIssue) {
       setError(

@@ -1,63 +1,32 @@
 # EZQRPRINT Security and Privacy
 
-## Customer privacy design
+## Customer privacy
 
-- Customers do not create an account and the customer UI does not request a name, email address, or phone number.
-- Orders are linked by a random Firestore document ID, shop ID, and daily sequential token. The token is an order label, not an authentication credential.
-- There are no customer name/email/phone fields in the Firestore order schema.
-- Shop-owner authentication details belong to Firebase Authentication and are separate from customer orders.
-- Uploaded filenames are retained as file metadata in the order summary. A filename or the contents of a file may still contain information supplied by the customer; users should avoid uploading documents they do not intend to print.
-- The browser stores only the active `orderId` and `shopSlug` in local storage to restore an in-progress customer session.
-- UPI ID and payee name are merchant settings, not customer data.
+- Customers do not make accounts or provide names, emails, or phone numbers.
+- The browser stores the random order ID and shop slug in local storage to restore an active order. Anyone who obtains the order ID may read that order's status and claim payment.
+- Uploaded filenames are retained in the order summary. A filename or file contents may contain customer-provided information.
+- File bytes expire in Workers KV after 24 hours; order summaries remain in D1 for the earnings log.
+- Merchant UPI details are public on the shop page so the payment app can be addressed correctly.
 
-## Firestore protections
+## Owner authentication
 
-`firestore.rules` validates shop/public-shop fields and restricts client order writes. The callable Cloud Functions use the Admin SDK, so they validate request fields, file paths and types, current rates, totals, and the maximum 20 files before writing. Rules also:
+- Passwords are salted and derived with PBKDF2-SHA-256 before storage. The server stores only the derived hash and salt.
+- Login creates a random 256-bit token. D1 stores its SHA-256 hash; the browser receives the token in an HttpOnly, Secure, SameSite=Lax cookie.
+- Owner-only API actions check the session and shop ownership on the server. Pages and API share the same origin, and the API does not enable cross-origin requests.
+- The app currently has no email verification, password reset, or Google sign-in. Owners should keep their password safe.
 
-- Restricts private shop data and owner order listing to the authenticated shop owner.
-- Exposes a separate minimal `publicShops/{slug}` projection for public shop lookup.
-- Denies client-side order creation; customers create and append files through `createCustomerOrder` and `appendOrderFiles`.
-- Limits customer order updates to claiming payment after the owner has requested payment.
-- Allows owners to update status, final amount, payment-claim state, and purge state while preserving core order identity and file metadata.
-- Disallows client-side deletion of order documents, preserving the earnings ledger. The cleanup function never deletes order documents.
+## Upload and order protections
 
-Order documents are readable by document ID so a customer can restore their active order. The random order ID acts as a bearer identifier; keep it private and do not treat the sequential token as access control.
+- Server checks allowed types (PDF/JPEG/PNG), content signatures, a 25 MiB file size limit, valid order IDs, file paths, page/copy values, current shop rates, and the 20-file order limit.
+- File paths include server-generated random UUIDs and are scoped by shop and order ID.
+- Owner download routes require a valid owner session and verify the order belongs to that owner's shop.
+- Customer order IDs are random bearer identifiers rather than sequential tokens; do not share them publicly.
+- UPI payment claims are customer-reported only. Owners must verify the payment in their UPI app.
 
-## Storage protections
+## Cloudflare Free allowances
 
-`storage.rules` restricts files to:
+The app uses D1 and Workers KV on the Cloudflare Free plan. Current free limits include 5 GB of D1 storage, 1 GB of KV storage, 100,000 Workers requests per day, and limited daily D1/KV operations. Those limits are hard caps; requests fail when a limit is reached and reset or recover according to Cloudflare's plan rules. Files expire after 24 hours to limit storage use. The app does not enable a paid Workers plan or R2.
 
-- `application/pdf`
-- `image/jpeg`
-- `image/png`
+## Deployment
 
-Each object must be at most 25 MiB (25 × 1024 × 1024 bytes), and objects are stored beneath the matching shop/order prefix. Customers can upload only for a published shop; owners can access their shop's objects. Reads are allowed for a file linked to a known order or for its owner.
-
-The browser checks file extensions and size before upload. Firebase Storage rules validate the declared `contentType` and object size; they do not inspect file signatures or scan document contents. Do not treat MIME metadata validation as malware scanning.
-
-## File expiry and order retention
-
-New orders receive an `expiresAt` timestamp 24 hours after creation. `firebase-functions/src/cleanupExpiredFiles.ts` runs every 60 minutes and selects orders with `filesPurged == false` and `expiresAt <= now`. It validates each path against the order's Storage prefix, deletes the Storage objects (tolerating already-missing objects), then transactionally sets `filesPurged: true` if the order is still expired and unpurged.
-
-The scheduled job removes file bytes, not order summaries. The Firestore order, token, totals, page/mode breakdown, and purge flag remain for the earnings history. Because the schedule runs hourly, deletion is not guaranteed at the exact 24-hour mark. Check Cloud Function logs and Firebase billing/scheduler configuration if cleanup does not run.
-
-Shop owners can also delete files early from the dashboard. This sets the same `filesPurged` flag while retaining the summary; the history badge therefore says “Files purged” rather than claiming the deletion was necessarily automatic.
-
-## Authentication, abuse, and payment limitations
-
-- Customer uploads and callable order creation are public by design. Configure and enforce Firebase App Check for Firestore and Storage before public launch, and monitor quotas and abuse. The callable functions must also be protected against automated abuse; configure callable App Check enforcement before broad production use.
-- Owner pages are protected by Firebase Authentication and Firestore/Storage ownership checks. Keep owner accounts secure and use authorized Firebase domains.
-- Firebase Web App configuration in `.env.local` is client configuration, not an Admin credential. Never put a service-account key in browser code or source control.
-- The checked-in `cors.json` currently allows GET/HEAD from any origin for browser downloads and PDF processing. Restrict its `origin` list to production app origins before launch.
-- Firebase Web App configuration is public client configuration even if supplied to the Pages workflow through Actions secrets; never put Admin credentials in GitHub Actions frontend variables.
-- The UPI button only opens a payment intent. `paymentClaimed` is customer-reported and is not proof of settlement. Owners should verify the payment in their payment app before marking an order complete.
-- Sequential tokens can reveal order volume and must not be used as access control.
-
-## Deployment checklist
-
-- Deploy `firestore.rules`, `storage.rules`, and `firestore.indexes.json` to the intended Firebase project.
-- Enable Email/Password and Google sign-in for shop owners.
-- Configure App Check and enforce it for Firestore and Storage.
-- Apply a production-specific bucket CORS policy.
-- Use a supported Firebase billing plan for callable and scheduled Cloud Functions; verify that callable endpoints and the hourly cleanup are deployed and monitor their logs.
-- Keep `.env.local`, Admin credentials, and customer-uploaded documents out of public repositories and support screenshots.
+The D1 schema lives in `migrations/0001_initial.sql`; bindings are named `DB` and `FILES` in `wrangler.jsonc`. Keep the database and namespace IDs in sync with the Cloudflare account that owns the Pages project. Never put passwords, session tokens, or Cloudflare API tokens in the repository.

@@ -1,6 +1,5 @@
-import { getDownloadURL, ref } from "firebase/storage";
 import type { PDFDocument as PDFDocumentType } from "pdf-lib";
-import { storage } from "./firebase";
+import { api } from "./api";
 import type { Order, OrderFile } from "../types";
 
 const A4_WIDTH = 210 * (72 / 25.4);
@@ -10,13 +9,8 @@ export function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
-export async function fetchOrderFile(file: OrderFile): Promise<Blob> {
-  const url = file.downloadUrl || await getDownloadURL(ref(storage, file.storagePath));
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Could not download ${file.fileName} (${response.status}).`);
-  }
-  return response.blob();
+export async function fetchOrderFile(file: OrderFile, orderId: string): Promise<Blob> {
+  return api.fetchFile(orderId, file);
 }
 
 export function downloadBlob(blob: Blob, fileName: string) {
@@ -30,8 +24,8 @@ export function downloadBlob(blob: Blob, fileName: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function downloadOrderFile(file: OrderFile) {
-  downloadBlob(await fetchOrderFile(file), file.fileName);
+export async function downloadOrderFile(file: OrderFile, orderId: string) {
+  downloadBlob(await fetchOrderFile(file, orderId), file.fileName);
 }
 
 export function safeZipName(fileName: string, index: number) {
@@ -48,7 +42,7 @@ export async function downloadOrderZip(order: Order) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const usedNames = new Map<string, number>();
-  const blobs = await Promise.all(order.files.map(fetchOrderFile));
+  const blobs = await Promise.all(order.files.map((file) => fetchOrderFile(file, order.id)));
 
   blobs.forEach((blob, index) => {
     const baseName = safeZipName(order.files[index].fileName, index);
@@ -75,7 +69,7 @@ export async function downloadOrderZip(order: Order) {
 export async function createOrderPdf(order: Order): Promise<Blob> {
   const { PDFDocument } = await import("pdf-lib");
   const output = await PDFDocument.create();
-  const blobs = await Promise.all(order.files.map(fetchOrderFile));
+  const blobs = await Promise.all(order.files.map((file) => fetchOrderFile(file, order.id)));
 
   for (let index = 0; index < order.files.length; index += 1) {
     const file = order.files[index];

@@ -1,9 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Minus, Plus, Trash2, Upload } from "lucide-react";
-import { deleteObject, ref, uploadBytesResumable } from "firebase/storage";
 import type { OrderFile, PublicShop } from "../types";
 import { formatINR } from "../lib/currency";
-import { storage } from "../lib/firebase";
+import { api } from "../lib/api";
 import {
   calculatePrintCost,
   getPrintMimeType,
@@ -136,31 +135,18 @@ export function PrintFileUploader({
   }
 
   async function uploadFile(draft: FileDraft): Promise<OrderFile> {
-    const storagePath = `shops/${shop.id}/orders/${orderId}/${crypto.randomUUID()}`;
-    uploadedPaths.current.push(storagePath);
-    const uploadTask = uploadBytesResumable(ref(storage, storagePath), draft.file, {
-      contentType: draft.mimeType,
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          updateFile(draft.key, {
-            progress: Math.round(
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
-            ),
-          });
-        },
-        reject,
-        resolve,
-      );
-    });
-
     const pageCount = draft.pageCount;
     if (pageCount === null || pageCount < 1) {
       throw new Error(`Enter the page count for ${draft.file.name}.`);
     }
+    const { storagePath } = await api.uploadFile(
+      draft.file,
+      draft.mimeType,
+      orderId,
+      shop.id,
+      (progress) => updateFile(draft.key, { progress }),
+    );
+    uploadedPaths.current.push(storagePath);
 
     return {
       fileName: draft.file.name,
@@ -222,21 +208,9 @@ export function PrintFileUploader({
       setFiles([]);
     } catch (uploadIssue) {
       const cleanupResults = await Promise.allSettled(
-        uploadedPaths.current.map(async (storagePath) => {
-          try {
-            await deleteObject(ref(storage, storagePath));
-          } catch (cleanupIssue) {
-            if (
-              typeof cleanupIssue === "object" &&
-              cleanupIssue !== null &&
-              "code" in cleanupIssue &&
-              cleanupIssue.code === "storage/object-not-found"
-            ) {
-              return;
-            }
-            throw cleanupIssue;
-          }
-        }),
+        uploadedPaths.current.map((storagePath) =>
+          api.deleteUpload(storagePath, orderId, shop.id),
+        ),
       );
       const cleanupFailures = cleanupResults.filter(
         (result): result is PromiseRejectedResult => result.status === "rejected",

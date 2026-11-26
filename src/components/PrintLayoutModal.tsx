@@ -469,7 +469,7 @@ export function PrintLayoutModal({ order, onClose }: PrintLayoutModalProps) {
     const imageFiles = order.files.filter((file) => file.mimeType !== "application/pdf");
     Promise.all(
       imageFiles.map(async (file) => {
-        const blob = await fetchOrderFile(file);
+        const blob = await fetchOrderFile(file, order.id);
         if (!active) return null;
         const url = URL.createObjectURL(blob);
         objectUrls.current.add(url);
@@ -671,7 +671,7 @@ export function PrintLayoutModal({ order, onClose }: PrintLayoutModalProps) {
   async function autoCrop(image: StudioImage) {
     setStudioError(null);
     try {
-      const result = await detectAndStraightenCard(await fetchOrderFile(image.file));
+      const result = await detectAndStraightenCard(await fetchOrderFile(image.file, order.id));
       if (!mounted.current) return;
       const url = URL.createObjectURL(result.blob);
       objectUrls.current.add(url);

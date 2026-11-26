@@ -1,16 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { deleteObject, ref } from "firebase/storage";
-import {
   Archive,
   CalendarDays,
   Download,
@@ -24,7 +13,6 @@ import {
   VolumeX,
 } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
 import { PrintLayoutModal } from "../components/PrintLayoutModal";
 import { QrStandeeGenerator } from "../components/QrStandeeGenerator";
 import { FeedbackPage, LoadingScreen } from "../components/StatusScreen";
@@ -37,10 +25,9 @@ import {
 } from "../lib/printActions";
 import { useAuth } from "../lib/AuthContext";
 import { formatINR } from "../lib/currency";
-import { auth, db, storage } from "../lib/firebase";
+import { api } from "../lib/api";
 import type { Order, OrderFile, Shop } from "../types";
 
-const activeOrderStatuses = ["pending", "printing", "awaiting_payment"];
 const istDateTime = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -70,7 +57,7 @@ function makeChime(context: AudioContext) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const navigate = useNavigate();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +74,7 @@ export default function Dashboard() {
   const audioContext = useRef<AudioContext | null>(null);
   const mutedRef = useRef(true);
   const initialQueueSnapshot = useRef(false);
+  const lastOrderIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let active = true;
@@ -95,10 +83,10 @@ export default function Dashboard() {
       return;
     }
 
-    getDoc(doc(db, "shops", user.uid))
-      .then((snapshot) => {
+    api.getShop()
+      .then((currentShop) => {
         if (!active) return;
-        setShop(snapshot.exists() ? (snapshot.data() as Shop) : null);
+        setShop(currentShop);
         setLoading(false);
       })
       .catch((loadIssue: unknown) => {
@@ -121,39 +109,31 @@ export default function Dashboard() {
     setQueueLoading(true);
     setQueueError(null);
     initialQueueSnapshot.current = false;
-    const ordersQuery = query(
-      collection(db, "orders"),
-      where("shopId", "==", shop.id),
-      where("status", "in", activeOrderStatuses),
-      orderBy("createdAt", "asc"),
-    );
-
-    return onSnapshot(
-      ordersQuery,
-      (snapshot) => {
-        const nextOrders = snapshot.docs.map((orderSnapshot) => ({
-          ...orderSnapshot.data(),
-          id: orderSnapshot.id,
-        })) as Order[];
-
-        if (initialQueueSnapshot.current) {
-          if (snapshot.docChanges().some((change) => change.type === "added")) {
-            if (!mutedRef.current && audioContext.current?.state === "running") {
-              makeChime(audioContext.current);
-            }
-          }
-        } else {
-          initialQueueSnapshot.current = true;
+    let active = true;
+    const refreshQueue = async () => {
+      try {
+        const nextOrders = await api.getOrders("active");
+        if (!active) return;
+        const nextIds = new Set(nextOrders.map((order) => order.id));
+        if (initialQueueSnapshot.current && [...nextIds].some((id) => !lastOrderIds.current.has(id))) {
+          if (!mutedRef.current && audioContext.current?.state === "running") makeChime(audioContext.current);
         }
-
+        initialQueueSnapshot.current = true;
+        lastOrderIds.current = nextIds;
         setOrders(nextOrders);
-        setQueueLoading(false);
-      },
-      (snapshotError) => {
-        setQueueError(snapshotError.message);
-        setQueueLoading(false);
-      },
-    );
+        setQueueError(null);
+      } catch (snapshotError) {
+        if (active) setQueueError(snapshotError instanceof Error ? snapshotError.message : "Unable to refresh the order queue.");
+      } finally {
+        if (active) setQueueLoading(false);
+      }
+    };
+    void refreshQueue();
+    const timer = window.setInterval(() => void refreshQueue(), 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [shop]);
 
   async function toggleChime() {
@@ -185,7 +165,8 @@ export default function Dashboard() {
 
   async function handleSignOut() {
     try {
-      await signOut(auth);
+      await api.logout();
+      await refresh();
       navigate("/", { replace: true });
     } catch (signOutIssue) {
       setError(
@@ -211,13 +192,13 @@ export default function Dashboard() {
 
   function downloadFile(order: Order, file: OrderFile) {
     const actionId = `download:${order.id}:${file.storagePath}`;
-    runAction(actionId, () => downloadOrderFile(file));
+    runAction(actionId, () => downloadOrderFile(file, order.id));
   }
 
   function printFile(order: Order, file: OrderFile) {
     const actionId = `print:${order.id}:${file.storagePath}`;
     runAction(actionId, async () => {
-      const blob = await fetchOrderFile(file);
+      const blob = await fetchOrderFile(file, order.id);
       await printBlob(blob, file.mimeType);
     });
   }
@@ -241,25 +222,19 @@ export default function Dashboard() {
       return;
     }
     runAction(`request-payment:${order.id}`, async () => {
-      await updateDoc(doc(db, "orders", order.id), {
-        finalAmount: value,
-        status: "awaiting_payment",
-      });
+      await api.updateOrder(order.id, "request-payment", value);
     });
   }
 
   function markPrinting(order: Order) {
     runAction(`printing:${order.id}`, async () => {
-      await updateDoc(doc(db, "orders", order.id), { status: "printing" });
+      await api.updateOrder(order.id, "printing");
     });
   }
 
   function confirmPaid(order: Order) {
     runAction(`complete:${order.id}`, async () => {
-      await updateDoc(doc(db, "orders", order.id), {
-        paymentClaimed: true,
-        status: "completed",
-      });
+      await api.updateOrder(order.id, "confirm-paid");
     });
   }
 
@@ -271,26 +246,7 @@ export default function Dashboard() {
       return;
     }
 
-    runAction(`delete:${order.id}`, async () => {
-      const results = await Promise.allSettled(
-        order.files.map(async (file) => {
-          try {
-            await deleteObject(ref(storage, file.storagePath));
-          } catch (deleteIssue: unknown) {
-            if ((deleteIssue as { code?: string })?.code !== "storage/object-not-found") {
-              throw deleteIssue;
-            }
-          }
-        }),
-      );
-      const failures = results.filter((result) => result.status === "rejected");
-      if (failures.length > 0) {
-        throw new Error(
-          "Some files could not be deleted. The order summary was retained; retry to finish cleanup.",
-        );
-      }
-      await updateDoc(doc(db, "orders", order.id), { filesPurged: true });
-    });
+    runAction(`delete:${order.id}`, async () => api.purgeFiles(order.id).then(() => undefined));
   }
 
   if (loading) return <LoadingScreen />;
