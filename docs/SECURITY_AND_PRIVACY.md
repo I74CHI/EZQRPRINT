@@ -14,6 +14,7 @@
 - Login creates a random 256-bit token. D1 stores its SHA-256 hash; the browser receives the token in an HttpOnly, Secure, SameSite=Lax cookie.
 - Owner-only API actions check the session and shop ownership on the server. Pages and API share the same origin, and the API does not enable cross-origin requests.
 - The app currently has no email verification, password reset, or Google sign-in. Owners should keep their password safe.
+- Owners can permanently delete their account after re-entering their current password and confirming the action. The account, shop, order history, and sessions are deleted; uploaded files are purged where possible and remaining temporary files expire within 24 hours.
 
 ## Upload and order protections
 

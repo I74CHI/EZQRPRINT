@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, LogOut, Save, Store } from "lucide-react";
+import { AlertTriangle, ArrowLeft, LogOut, Save, Store, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { LoadingScreen } from "../components/StatusScreen";
 import { useAuth } from "../lib/AuthContext";
@@ -7,7 +7,7 @@ import { api } from "../lib/api";
 import type { Shop } from "../types";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const navigate = useNavigate();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,11 @@ export default function Settings() {
   const [colorDoubleSidedRate, setColorDoubleSidedRate] = useState("10");
   const [upiId, setUpiId] = useState("");
   const [upiPayeeName, setUpiPayeeName] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -145,6 +150,32 @@ export default function Settings() {
           ? signOutIssue.message
           : "Unable to sign out.",
       );
+    }
+  }
+
+  async function handleDeleteAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDeleteError(null);
+    if (deleteConfirmation !== "DELETE") {
+      setDeleteError('Type "DELETE" exactly to confirm permanent account deletion.');
+      return;
+    }
+    if (!deletePassword) {
+      setDeleteError("Enter your current password to continue.");
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount(deletePassword);
+      try { await refresh(); } catch { /* The account is already deleted; the session cookie was cleared. */ }
+      navigate("/", { replace: true });
+    } catch (deleteIssue) {
+      setDeleteError(
+        deleteIssue instanceof Error ? deleteIssue.message : "Unable to delete this account.",
+      );
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -363,8 +394,97 @@ export default function Settings() {
               {saving ? "Saving…" : "Save shop settings"}
             </button>
           </form>
+
+          <section className="mt-10 border border-[#e4aaa6] bg-[#fff8f7] p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 shrink-0 text-[#b4231b]" size={20} aria-hidden="true" />
+              <div>
+                <h2 className="font-bold text-[#8e211d]">Permanent account deletion</h2>
+                <p className="mt-2 text-sm leading-6 text-[#68201c]">
+                  Permanently deletes your owner account, shop, order history, and uploaded files. This cannot be undone. Any temporary file that cannot be removed immediately expires within 24 hours.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteConfirmation("");
+                    setDeletePassword("");
+                    setDeleteError(null);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="mt-4 inline-flex items-center gap-2 border border-[#b4231b] px-4 py-2.5 text-sm font-bold text-[#8e211d] transition hover:bg-[#f9e9e7]"
+                >
+                  <Trash2 size={16} aria-hidden="true" /> Delete account permanently
+                </button>
+              </div>
+            </div>
+          </section>
         </section>
       </div>
+
+      {deleteDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="w-full max-w-lg border border-[#171717] bg-white p-6 shadow-2xl sm:p-8"
+          >
+            <h2 id="delete-account-title" className="text-xl font-black text-[#8e211d]">
+              Delete your EZQRPRINT account?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[#55534d]">
+              Your shop, orders, and login sessions will be permanently deleted. Stored print files are removed immediately where possible; any remaining temporary uploads expire within 24 hours. Enter your current password and type <strong>DELETE</strong> below to confirm.
+            </p>
+            {deleteError && (
+              <p role="alert" className="mt-4 border-l-4 border-[#e6322b] bg-[#f9e9e7] p-3 text-sm text-[#8e211d]">
+                {deleteError}
+              </p>
+            )}
+            <form onSubmit={handleDeleteAccount} className="mt-5 space-y-4">
+              <label className="block text-sm font-semibold text-[#383630]">
+                Current password
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(event) => setDeletePassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                  maxLength={128}
+                  className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none focus:border-[#e6322b]"
+                />
+              </label>
+              <label className="block text-sm font-semibold text-[#383630]">
+                Type DELETE to confirm
+                <input
+                  value={deleteConfirmation}
+                  onChange={(event) => setDeleteConfirmation(event.target.value)}
+                  autoComplete="off"
+                  required
+                  className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none focus:border-[#e6322b]"
+                />
+              </label>
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={deletingAccount}
+                  onClick={() => setDeleteDialogOpen(false)}
+                  className="border border-[#aaa79f] px-5 py-3 font-bold text-[#55534d] hover:bg-black/5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingAccount || deleteConfirmation !== "DELETE" || !deletePassword}
+                  className="inline-flex items-center justify-center gap-2 bg-[#b4231b] px-5 py-3 font-bold text-white hover:bg-[#8e211d] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 size={17} aria-hidden="true" />
+                  {deletingAccount ? "Deleting account…" : "Permanently delete account"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

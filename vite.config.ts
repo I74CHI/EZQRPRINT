@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     base: env.VITE_BASE_PATH || "/",
     plugins: [react()],
     test: {
-      include: ["src/**/*.{test,spec}.{ts,tsx}"],
+      include: ["src/**/*.{test,spec}.{ts,tsx}", "functions/**/*.test.js"],
     },
     build: {
       rollupOptions: {

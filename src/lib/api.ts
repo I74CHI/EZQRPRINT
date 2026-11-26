@@ -54,6 +54,12 @@ export const api = {
   async logout() {
     return request<{ ok: boolean }>("auth/logout", { method: "POST" });
   },
+  async deleteAccount(password: string) {
+    return request<{ ok: boolean }>("auth/account", {
+      method: "DELETE",
+      body: JSON.stringify({ password }),
+    });
+  },
   async getShop() {
     const result = await request<{ shop: Shop | null }>("shop");
     return result.shop;

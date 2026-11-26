@@ -69,6 +69,14 @@ function clearSessionCookie() {
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
+async function deleteShopFiles(env, shopId) {
+  const page = await env.FILES.list({ prefix: `files/${shopId}/`, limit: 900 });
+  for (let index = 0; index < page.keys.length; index += 100) {
+    await Promise.all(page.keys.slice(index, index + 100).map(({ name }) => env.FILES.delete(name)));
+  }
+  return page.list_complete;
+}
+
 async function readJson(request) {
   try {
     return await request.json();
@@ -168,6 +176,34 @@ async function authRoutes(request, env, path) {
   if (path === "auth/me" && request.method === "GET") {
     const owner = await getOwner(request, env);
     return json({ user: owner ? { uid: owner.id, email: owner.email } : null });
+  }
+
+  if (path === "auth/account" && request.method === "DELETE") {
+    const owner = await getOwner(request, env);
+    if (!owner) return fail("Sign in to continue.", 401);
+    const body = await readJson(request);
+    const password = typeof body?.password === "string" ? body.password : "";
+    if (password.length < 8 || password.length > 128) return fail("Enter your current password to delete your account.");
+    const credentials = await env.DB.prepare("SELECT password_hash, password_salt FROM owners WHERE id = ?").bind(owner.id).first();
+    if (!credentials || !constantTimeEqual(await derivePassword(password, credentials.password_salt), credentials.password_hash)) return fail("The current password is incorrect.", 401);
+
+    const shop = await env.DB.prepare("SELECT id FROM shops WHERE owner_id = ?").bind(owner.id).first();
+    const statements = [];
+    if (shop) statements.push(env.DB.prepare("DELETE FROM orders WHERE shop_id = ?").bind(shop.id));
+    statements.push(env.DB.prepare("DELETE FROM shops WHERE owner_id = ?").bind(owner.id));
+    statements.push(env.DB.prepare("DELETE FROM sessions WHERE owner_id = ?").bind(owner.id));
+    statements.push(env.DB.prepare("DELETE FROM owners WHERE id = ?").bind(owner.id));
+    await env.DB.batch(statements);
+
+    if (shop) {
+      try {
+        const filesRemoved = await deleteShopFiles(env, shop.id);
+        if (!filesRemoved) console.warn("EZQRPRINT account deleted; remaining uploaded files will expire automatically.");
+      } catch (error) {
+        console.error("EZQRPRINT account deleted; uploaded file cleanup will rely on automatic expiry.", error);
+      }
+    }
+    return json({ ok: true }, 200, { "set-cookie": clearSessionCookie() });
   }
 
   if (path === "auth/logout" && request.method === "POST") {

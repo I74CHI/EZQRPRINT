@@ -9,6 +9,8 @@
 5. To offer a preset UPI payment button, enter both your merchant UPI ID and payee name. Leave both blank if customers should pay at the counter.
 6. Save the settings. Keep the slug stable: changing it changes the permanent QR URL, so previously printed standees must be replaced.
 
+To permanently delete your owner account, open **Shop settings**, choose **Delete account permanently**, re-enter your current password, and type **DELETE**. This removes the shop, order history, and sessions. Uploaded files are deleted immediately where possible; any remaining temporary uploads expire within 24 hours.
+
 ## Print the permanent counter standee
 
 1. Open the owner dashboard and scroll to **Permanent counter QR standee**.
