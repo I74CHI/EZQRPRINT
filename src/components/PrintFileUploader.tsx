@@ -364,7 +364,7 @@ export function PrintFileUploader({
               ))}
             </div>
             <p className="mt-2 text-xs text-[#68665f]">
-              Billed per page using the matching single-sided or double-sided B&amp;W or Color rate. Enable duplex in the printer settings.
+              Single-sided uses the per-page rate. Double-sided uses the per-sheet rate for each page pair; an odd last page uses the single-sided rate. Enable duplex in the printer settings.
             </p>
           </div>
 

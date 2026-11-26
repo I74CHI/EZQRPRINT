@@ -29,8 +29,16 @@ export function calculatePrintCost(
   printSides: "single" | "double" = "single",
 ) {
   if (pageCount === null) return 0;
-  const rate = colorMode === "bw"
-    ? printSides === "double" ? rates.bwDoubleSidedPerPage : rates.bwPerPage
-    : printSides === "double" ? rates.colorDoubleSidedPerPage : rates.colorPerPage;
-  return pageCount * copies * rate;
+  const singleSidedRate = colorMode === "bw" ? rates.bwPerPage : rates.colorPerPage;
+  if (printSides === "single") return pageCount * copies * singleSidedRate;
+
+  const doubleSidedRate = colorMode === "bw"
+    ? rates.bwDoubleSidedPerPage
+    : rates.colorDoubleSidedPerPage;
+  const doubleSidedSheetCount = Math.floor(pageCount / 2);
+  const remainingSingleSidedSheets = pageCount % 2;
+  return copies * (
+    doubleSidedSheetCount * doubleSidedRate +
+    remainingSingleSidedSheets * singleSidedRate
+  );
 }

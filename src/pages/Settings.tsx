@@ -112,7 +112,7 @@ export default function Settings() {
       !Number.isFinite(numericColorDoubleSidedRate) ||
       numericColorDoubleSidedRate < 0
     ) {
-      setError("Enter valid non-negative per-page rates.");
+      setError("Enter valid non-negative print rates.");
       return;
     }
     if (Boolean(trimmedUpiId) !== Boolean(trimmedPayeeName)) {
@@ -346,14 +346,14 @@ export default function Settings() {
 
             <fieldset>
               <legend className="mb-3 text-sm font-bold text-[#171717]">
-                Double-sided print rates per page (INR)
+                Double-sided print rates per physical sheet (INR)
               </legend>
               <p className="mb-4 text-sm leading-6 text-[#55534d]">
-                These rates apply to each PDF page when the customer selects double-sided printing.
+                Each pair of PDF pages uses one sheet rate. If the PDF has an odd number of pages, its final page uses the matching single-sided rate.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-[#383630]">
-                  Black &amp; White · double-sided per page
+                  Black &amp; White · double-sided per sheet
                   <span className="mt-2 flex items-center border border-[#aaa79f] bg-white focus-within:border-[#e6322b]">
                     <span className="pl-4 text-[#68665f]">₹</span>
                     <input
@@ -368,7 +368,7 @@ export default function Settings() {
                   </span>
                 </label>
                 <label className="block text-sm font-medium text-[#383630]">
-                  Color · double-sided per page
+                  Color · double-sided per sheet
                   <span className="mt-2 flex items-center border border-[#aaa79f] bg-white focus-within:border-[#e6322b]">
                     <span className="pl-4 text-[#68665f]">₹</span>
                     <input

@@ -51,9 +51,9 @@ describe("print pricing", () => {
     expect(calculatePrintCost(2, 3, "color", rates)).toBe(60);
   });
 
-  it("uses the separate B&W and Color rates for double-sided pages", () => {
-    expect(calculatePrintCost(3, 2, "bw", rates, "double")).toBe(12);
-    expect(calculatePrintCost(2, 3, "color", rates, "double")).toBe(48);
+  it("uses the sheet rate for page pairs and the single-sided rate for an odd page", () => {
+    expect(calculatePrintCost(3, 2, "bw", rates, "double")).toBe(9);
+    expect(calculatePrintCost(2, 3, "color", rates, "double")).toBe(24);
   });
 
   it("charges nothing while an encrypted PDF has no entered page count", () => {

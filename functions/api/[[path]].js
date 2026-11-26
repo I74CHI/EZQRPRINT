@@ -136,10 +136,14 @@ async function validateFiles(value, shopId, orderId, rates, env) {
     const { fileName, storagePath, mimeType, pageCount, copies, colorMode, printSides, printNote } = file;
     if (typeof fileName !== "string" || !fileName.trim() || fileName.length > 255 || !expectedStoragePath(shopId, orderId, storagePath) || !MIME_TYPES.has(mimeType) || !Number.isSafeInteger(pageCount) || pageCount < 1 || pageCount > 10000 || !Number.isSafeInteger(copies) || copies < 1 || copies > 100 || !["bw", "color"].includes(colorMode) || !["single", "double"].includes(printSides) || !["standard", "id-card"].includes(printNote) || (mimeType === "application/pdf" && printNote !== "standard") || (mimeType !== "application/pdf" && pageCount !== 1)) throw new Error(`Invalid file: ${fileName || "unknown"}.`);
     if (!await env.FILES.get(storagePath, "stream")) throw new Error(`The upload for ${fileName} expired or could not be found. Please upload it again.`);
-    const rate = colorMode === "bw"
-      ? printSides === "double" ? rates.bwDoubleSidedPerPage : rates.bwPerPage
-      : printSides === "double" ? rates.colorDoubleSidedPerPage : rates.colorPerPage;
-    const itemCost = pageCount * copies * rate;
+    const singleSidedRate = colorMode === "bw" ? rates.bwPerPage : rates.colorPerPage;
+    const doubleSidedRate = colorMode === "bw" ? rates.bwDoubleSidedPerPage : rates.colorDoubleSidedPerPage;
+    const itemCost = printSides === "double"
+      ? copies * (
+        Math.floor(pageCount / 2) * doubleSidedRate +
+        (pageCount % 2) * singleSidedRate
+      )
+      : pageCount * copies * singleSidedRate;
     if (!Number.isFinite(itemCost)) throw new Error("The order total is invalid.");
     files.push({ fileName, storagePath, downloadUrl: "", mimeType, pageCount, copies, colorMode, printSides, printNote, itemCost });
   }
@@ -289,7 +293,7 @@ async function handleApi(request, env) {
     const payee = typeof body?.upiPayeeName === "string" ? body.upiPayeeName.trim() : "";
     if (!shopName || shopName.length > 80) return fail("Enter a shop name up to 80 characters.");
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 50) return fail("Use lowercase letters, numbers, and single hyphens for the shop URL.");
-    if (typeof bw !== "number" || !Number.isFinite(bw) || bw < 0 || bw > 100000 || typeof color !== "number" || !Number.isFinite(color) || color < 0 || color > 100000 || typeof bwDoubleSided !== "number" || !Number.isFinite(bwDoubleSided) || bwDoubleSided < 0 || bwDoubleSided > 100000 || typeof colorDoubleSided !== "number" || !Number.isFinite(colorDoubleSided) || colorDoubleSided < 0 || colorDoubleSided > 100000) return fail("Enter valid non-negative per-page rates.");
+    if (typeof bw !== "number" || !Number.isFinite(bw) || bw < 0 || bw > 100000 || typeof color !== "number" || !Number.isFinite(color) || color < 0 || color > 100000 || typeof bwDoubleSided !== "number" || !Number.isFinite(bwDoubleSided) || bwDoubleSided < 0 || bwDoubleSided > 100000 || typeof colorDoubleSided !== "number" || !Number.isFinite(colorDoubleSided) || colorDoubleSided < 0 || colorDoubleSided > 100000) return fail("Enter valid non-negative print rates.");
     if (Boolean(upiId) !== Boolean(payee) || upiId.length > 100 || payee.length > 100) return fail("Enter both UPI ID and payee name, or leave both blank.");
     const upiDetailsChanged =
       upiId !== (existing?.upi_id ?? "") || payee !== (existing?.upi_payee_name ?? "");
