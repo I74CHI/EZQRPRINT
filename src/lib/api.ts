@@ -70,6 +70,7 @@ export const api = {
     rates: PublicShop["rates"];
     upiId?: string;
     upiPayeeName?: string;
+    currentPassword?: string;
   }) {
     const result = await request<{ shop: Shop }>("shop", {
       method: "PUT",

@@ -22,6 +22,7 @@ export default function Settings() {
   const [colorDoubleSidedRate, setColorDoubleSidedRate] = useState("10");
   const [upiId, setUpiId] = useState("");
   const [upiPayeeName, setUpiPayeeName] = useState("");
+  const [upiConfirmationPassword, setUpiConfirmationPassword] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
@@ -73,6 +74,10 @@ export default function Settings() {
   if (loading) return <LoadingScreen />;
 
   const slugChanged = Boolean(shop && slug !== shop.slug);
+  const upiDetailsChanged = Boolean(
+    upiId.trim() !== (shop?.upiId ?? "") ||
+      upiPayeeName.trim() !== (shop?.upiPayeeName ?? ""),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -114,6 +119,10 @@ export default function Settings() {
       setError("Enter both UPI ID and payee name, or leave both blank.");
       return;
     }
+    if (upiDetailsChanged && !upiConfirmationPassword) {
+      setError("Enter your current password to change the preset UPI payment details.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -122,6 +131,7 @@ export default function Settings() {
         slug: trimmedSlug,
         upiId: trimmedUpiId,
         upiPayeeName: trimmedPayeeName,
+        ...(upiDetailsChanged ? { currentPassword: upiConfirmationPassword } : {}),
         rates: {
           bwPerPage: numericBwRate,
           colorPerPage: numericColorRate,
@@ -130,6 +140,7 @@ export default function Settings() {
         },
       });
       setShop(savedShop);
+      setUpiConfirmationPassword("");
       setNotice("Shop settings saved.");
     } catch (saveIssue) {
       setError(
@@ -311,6 +322,25 @@ export default function Settings() {
                   </span>
                 </label>
               </div>
+              {upiDetailsChanged && (
+                <label className="mt-4 block text-sm font-medium text-[#383630]">
+                  Current password to confirm UPI change
+                  <input
+                    type="password"
+                    value={upiConfirmationPassword}
+                    onChange={(event) => setUpiConfirmationPassword(event.target.value)}
+                    autoComplete="current-password"
+                    required
+                    minLength={8}
+                    maxLength={128}
+                    className="mt-2 w-full border border-[#aaa79f] bg-white px-4 py-3 text-[#171717] outline-none focus:border-[#e6322b]"
+                    placeholder="Enter your account password"
+                  />
+                  <span className="mt-2 block text-xs font-normal text-[#68665f]">
+                    Required when adding, changing, or removing your saved UPI payment details.
+                  </span>
+                </label>
+              )}
             </fieldset>
 
             <fieldset>

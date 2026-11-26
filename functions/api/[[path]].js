@@ -291,6 +291,14 @@ async function handleApi(request, env) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 50) return fail("Use lowercase letters, numbers, and single hyphens for the shop URL.");
     if (typeof bw !== "number" || !Number.isFinite(bw) || bw < 0 || bw > 100000 || typeof color !== "number" || !Number.isFinite(color) || color < 0 || color > 100000 || typeof bwDoubleSided !== "number" || !Number.isFinite(bwDoubleSided) || bwDoubleSided < 0 || bwDoubleSided > 100000 || typeof colorDoubleSided !== "number" || !Number.isFinite(colorDoubleSided) || colorDoubleSided < 0 || colorDoubleSided > 100000) return fail("Enter valid non-negative per-page rates.");
     if (Boolean(upiId) !== Boolean(payee) || upiId.length > 100 || payee.length > 100) return fail("Enter both UPI ID and payee name, or leave both blank.");
+    const upiDetailsChanged =
+      upiId !== (existing?.upi_id ?? "") || payee !== (existing?.upi_payee_name ?? "");
+    if (upiDetailsChanged) {
+      const currentPassword = typeof body?.currentPassword === "string" ? body.currentPassword : "";
+      if (currentPassword.length < 8 || currentPassword.length > 128) return fail("Enter your current password to change the preset UPI payment details.");
+      const credentials = await env.DB.prepare("SELECT password_hash, password_salt FROM owners WHERE id = ?").bind(auth.owner.id).first();
+      if (!credentials || !constantTimeEqual(await derivePassword(currentPassword, credentials.password_salt), credentials.password_hash)) return fail("The current password is incorrect.", 401);
+    }
     const collision = await env.DB.prepare("SELECT owner_id FROM shops WHERE slug = ? AND owner_id <> ?").bind(slug, auth.owner.id).first();
     if (collision) return fail("That shop URL is already in use. Choose another.", 409);
     const now = Date.now();

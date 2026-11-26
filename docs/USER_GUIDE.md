@@ -6,7 +6,7 @@
 2. Register with an email and password of at least 8 characters, then open **Shop settings**.
 3. Enter the public shop name and choose a short URL slug, such as `sharma-prints`.
 4. Set separate single-sided and double-sided per-page rates for B&W and Color.
-5. To offer a preset UPI payment button, enter both your merchant UPI ID and payee name. Leave both blank if customers should pay at the counter.
+5. To offer a preset UPI payment button, enter both your merchant UPI ID and payee name. Leave both blank if customers should pay at the counter. Changing or removing saved UPI details requires your current password.
 6. Save the settings. Keep the slug stable: changing it changes the permanent QR URL, so previously printed standees must be replaced.
 
 To permanently delete your owner account, open **Shop settings**, choose **Delete account permanently**, re-enter your current password, and type **DELETE**. This removes the shop, order history, and sessions. Uploaded files are deleted immediately where possible; any remaining temporary uploads expire within 24 hours.
