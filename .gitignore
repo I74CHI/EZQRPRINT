@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+firebase-functions/node_modules/
+
+# Production and build outputs
+dist/
+firebase-functions/lib/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.local
+
+# Firebase
+.firebase/
+*.log
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Python virtual environments (if any)
+venv/
+.venv/
+__pycache__/
+
+# System & IDE artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

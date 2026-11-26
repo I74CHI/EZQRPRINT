@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #171717;
+  background: #f3f2ee;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f3f2ee;
+}
+
+@page standee-a4 {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@page standee-a5 {
+  size: A5 portrait;
+  margin: 0;
+}
+
+@page print-studio-a4-portrait {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@page print-studio-a4-landscape {
+  size: A4 landscape;
+  margin: 0;
+}
+
+@media print {
+  body {
+    min-width: 0;
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .standee-print-root,
+  .standee-print-root * {
+    visibility: visible !important;
+  }
+
+  .standee-print-root {
+    position: fixed !important;
+    inset: 0 !important;
+    display: grid !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    place-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .standee-print-root[data-paper-size="a4"] {
+    page: standee-a4;
+  }
+
+  .standee-print-root[data-paper-size="a5"] {
+    page: standee-a5;
+  }
+
+  .standee-card {
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .standee-card[data-paper-size="a4"] {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 16mm !important;
+  }
+
+  .standee-card[data-paper-size="a5"] {
+    width: 148mm !important;
+    height: 210mm !important;
+    padding: 6mm !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-qr-frame {
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+    padding: 8px !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-qr-frame svg {
+    width: 170px !important;
+    height: 170px !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-url {
+    margin-bottom: 12px !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-steps > div {
+    padding: 8px !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-steps > div > span {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-steps > div p {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .standee-card[data-paper-size="a5"] .standee-footer {
+    padding-top: 16px !important;
+  }
+
+  .print-layout-print-root,
+  .print-layout-print-root * {
+    visibility: visible !important;
+  }
+
+  .print-layout-print-root {
+    position: fixed !important;
+    inset: 0 !important;
+    display: grid !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    place-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+
+  .print-layout-print-root[data-orientation="portrait"] {
+    page: print-studio-a4-portrait;
+  }
+
+  .print-layout-print-root[data-orientation="landscape"] {
+    page: print-studio-a4-landscape;
+  }
+
+  .print-layout-print-canvas {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print-layout-print-root[data-orientation="landscape"] .print-layout-print-canvas {
+    width: 297mm !important;
+    height: 210mm !important;
+  }
+}
